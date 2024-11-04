@@ -7,8 +7,8 @@ module div3_rom(
     input wire [6:0] in,
     output wire [5:0] out
 );
-	assign out = d[in];
 	reg [5:0] d[0:119];
+	assign out = d[in];
 	initial begin
 		d[  0] = 6'd0;
 		d[  1] = 6'd0;

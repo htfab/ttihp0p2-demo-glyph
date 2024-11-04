@@ -56,24 +56,11 @@ module tt_um_vga_glyph_mode(
 		.vpos(pix_y)
 	);
 
-	// glyphs
-	glyphs_rom glyphs(
-			.c(glyph_index),
-			.y(g_y),
-			.x(g_x),
-			.pixel(hl)
-	);
-
 	// division by 3
 	div3_rom div3(
 		.in(pix_y[8:2]),
 		.out(yb)
 	);
-
-	wire [5:0] r = x[6:1] >> 2;
-	wire [5:0] glyph_index = {xb[2] ^ yb[0], xb[0] ^ yb[1], xb[1] ^ yb[2], xb[4] ^ yb[3], xb[3] ^ yb[4]} // [0,31]
-		+ {1'b0, xb[5] ^ yb[5], xb[6] ^ yb[0], xb[0] ^ yb[1], xb[1] ^ yb[2]} // [0,15]
-		+ r; // [0,7]
 
 	wire [1:0] a = xb[1:0];
 	wire [3:0] b = xb[5:2];
@@ -90,19 +77,10 @@ module tt_um_vga_glyph_mode(
 	wire [2:0] y = x[2:0] ^ 3'b111;
 	wire [5:0] black = 6'b000000;
 
-	wire [5:0] z = (((v[2:0] & 3'b111) == 3'b000) & y == 7) ? 6'b111111 : palette[ui_in[1:0]][y];
-
-	wire [5:0] color = ((f != 7'd0) | n) ? black : z;
-
-	assign RGB = (video_active & hl) ? color : black;
-	
-	always @(posedge vsync) begin
-		if (~rst_n) begin
-			counter <= 0;
-		end else begin
-			counter <= counter + 1;
-		end
-	end
+	wire [5:0] r = x[6:1] >> 2;
+	wire [5:0] glyph_index = {xb[2] ^ yb[0], xb[0] ^ yb[1], xb[1] ^ yb[2], xb[4] ^ yb[3], xb[3] ^ yb[4]} // [0,31]
+			+ {1'b0, xb[5] ^ yb[5], xb[6] ^ yb[0], xb[0] ^ yb[1], xb[1] ^ yb[2]} // [0,15]
+			+ r; // [0,7]
 
 	// color palette (RRGGBB)
 	reg [5:0] palette[3:0][7:0];
@@ -140,4 +118,27 @@ module tt_um_vga_glyph_mode(
 		palette[3][6] = 6'b100010;
 		palette[3][7] = 6'b110011;
 	end
+
+	wire [5:0] z = (((v[2:0] & 3'b111) == 3'b000) & y == 7) ? 6'b111111 : palette[ui_in[1:0]][y];
+
+	wire [5:0] color = ((f != 7'd0) | n) ? black : z;
+
+	// glyphs
+	glyphs_rom glyphs(
+			.c(glyph_index),
+			.y(g_y),
+			.x(g_x),
+			.pixel(hl)
+	);
+
+	assign RGB = (video_active & hl) ? color : black;
+
+	always @(posedge vsync) begin
+		if (~rst_n) begin
+			counter <= 0;
+		end else begin
+			counter <= counter + 1;
+		end
+	end
+
 endmodule
